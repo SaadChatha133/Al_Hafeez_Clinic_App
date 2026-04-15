@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "932260094511",
+    "project_id": "al-hafeez-clinic",
+    "storage_bucket": "al-hafeez-clinic.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:932260094511:android:6d445d9e2a6ca1bfaf9cda",
+        "android_client_info": {
+          "package_name": "com.example.fyp_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAr2Xg8G_u0Z-PKAzDF21Yoi7IU0y0OFaM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
