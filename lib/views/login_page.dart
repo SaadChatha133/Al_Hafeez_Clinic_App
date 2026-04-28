@@ -25,20 +25,31 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  Future<void> login() async {
-    final String email = emailController.text.trim();
-    final String password = passwordController.text.trim();
+  bool isValidEmail(String email) {
+    return email.contains('@') && email.contains('.com');
+  }
+
+  Future<void> loginUser() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
 
     setState(() {
       errorMessage = null;
     });
 
     if (email.isEmpty || password.isEmpty) {
-      showError('Please enter both email and password.');
+      showError('Please enter email and password.');
       return;
     }
 
-    setState(() => isLoading = true);
+    if (!isValidEmail(email)) {
+      showError('Invalid email format. Please enter an email with @ and .com');
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
 
     try {
       await authService.value.signIn(
@@ -48,30 +59,70 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (_) => const NavigationPage(),
         ),
+        (route) => false,
       );
-    } on FirebaseAuthException {
-      if (!mounted) return;
-      showError('Wrong email or password. Please enter again.');
+    } on FirebaseAuthException catch (e) {
+      String message = 'Email or password is wrong. Please enter again.';
+
+      if (e.code == 'user-not-found') {
+        message = 'No account found with this email.';
+      } else if (e.code == 'wrong-password' ||
+          e.code == 'invalid-credential') {
+        message = 'Password is incorrect.';
+      } else if (e.code == 'invalid-email') {
+        message = 'The email address is invalid.';
+      }
+
+      showError(message);
     } catch (e) {
-      if (!mounted) return;
-      showError('Wrong email or password. Please enter again.');
+      showError('Could not login. Please try again.');
     } finally {
       if (mounted) {
-        setState(() => isLoading = false);
+        setState(() {
+          isLoading = false;
+        });
       }
     }
   }
 
-  @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
+  Widget buildErrorBox() {
+    if (errorMessage == null) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFE5E5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD64545)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            color: Color(0xFFD64545),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              errorMessage!,
+              style: const TextStyle(
+                color: Color(0xFF9F1D1D),
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   InputDecoration inputDecoration({
@@ -105,44 +156,17 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget buildErrorBox() {
-    if (errorMessage == null) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFE5E5),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD64545)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.error_outline,
-            color: Color(0xFFD64545),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              errorMessage!,
-              style: const TextStyle(
-                color: Color(0xFF9F1D1D),
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE8FFFB),
       body: Stack(
         children: [
           Container(
@@ -158,7 +182,31 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
-          Center(
+          Positioned(
+            top: -60,
+            right: -40,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.25),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -80,
+            left: -50,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4DB6AC).withOpacity(0.18),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: ClipRRect(
@@ -167,7 +215,6 @@ class _LoginPageState extends State<LoginPage> {
                   filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                   child: Container(
                     width: double.infinity,
-                    constraints: const BoxConstraints(maxWidth: 430),
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.28),
@@ -184,11 +231,10 @@ class _LoginPageState extends State<LoginPage> {
                       ],
                     ),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
                           Icons.login_rounded,
-                          size: 46,
+                          size: 50,
                           color: Color(0xFF0F766E),
                         ),
                         const SizedBox(height: 12),
@@ -236,7 +282,7 @@ class _LoginPageState extends State<LoginPage> {
                             : SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: login,
+                                  onPressed: loginUser,
                                   style: ElevatedButton.styleFrom(
                                     elevation: 0,
                                     backgroundColor: const Color(0xFF0F766E),

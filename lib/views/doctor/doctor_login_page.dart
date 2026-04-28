@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../auth_service.dart';
-import 'doctor_page.dart';
+import 'doctor_navigation.dart';
 
 class DoctorLoginPage extends StatefulWidget {
   const DoctorLoginPage({super.key});
@@ -25,20 +25,22 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
     });
   }
 
-  Future<void> doctorLogin() async {
-    final String email = emailController.text.trim();
-    final String password = passwordController.text.trim();
+  Future<void> loginDoctor() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
 
     setState(() {
       errorMessage = null;
     });
 
     if (email.isEmpty || password.isEmpty) {
-      showError('Please enter both doctor email and password.');
+      showError('Please enter doctor email and password.');
       return;
     }
 
-    setState(() => isLoading = true);
+    setState(() {
+      isLoading = true;
+    });
 
     try {
       await authService.value.signIn(
@@ -50,29 +52,36 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
 
       if (!isAdmin) {
         await authService.value.signOut();
-
-        if (!mounted) return;
-        showError('This account does not have doctor access.');
+        showError('This account is not allowed to access doctor admin.');
         return;
       }
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) => const DoctorPage(),
+          builder: (_) => const DoctorNavigationPage(),
         ),
+        (route) => false,
       );
-    } on FirebaseAuthException {
-      if (!mounted) return;
-      showError('Wrong doctor email or password.');
+    } on FirebaseAuthException catch (e) {
+      String message = 'Could not login. Please try again.';
+
+      if (e.code == 'user-not-found' ||
+          e.code == 'wrong-password' ||
+          e.code == 'invalid-credential') {
+        message = 'Doctor email or password is incorrect.';
+      }
+
+      showError(message);
     } catch (e) {
-      if (!mounted) return;
-      showError('Could not open doctor page. Please try again.');
+      showError('Could not login. Please try again.');
     } finally {
       if (mounted) {
-        setState(() => isLoading = false);
+        setState(() {
+          isLoading = false;
+        });
       }
     }
   }
@@ -90,20 +99,15 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
         border: Border.all(color: const Color(0xFFD64545)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.error_outline,
-            color: Color(0xFFD64545),
-          ),
+          const Icon(Icons.error_outline, color: Color(0xFFD64545)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               errorMessage!,
               style: const TextStyle(
                 color: Color(0xFF9F1D1D),
-                fontWeight: FontWeight.w500,
-                height: 1.4,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -193,7 +197,7 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
               ),
             ),
           ),
-          Center(
+          SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: ClipRRect(
@@ -202,7 +206,6 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                   filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                   child: Container(
                     width: double.infinity,
-                    constraints: const BoxConstraints(maxWidth: 430),
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.28),
@@ -219,11 +222,10 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                       ],
                     ),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.medical_information_rounded,
-                          size: 50,
+                          Icons.medical_services_rounded,
+                          size: 52,
                           color: Color(0xFF0F766E),
                         ),
                         const SizedBox(height: 12),
@@ -233,6 +235,16 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF0F5F5A),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Secure doctor access for appointments and patient records.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 15,
+                            height: 1.5,
+                            color: Color(0xFF275E59),
                           ),
                         ),
                         const SizedBox(height: 22),
@@ -270,8 +282,15 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                               )
                             : SizedBox(
                                 width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: doctorLogin,
+                                child: ElevatedButton.icon(
+                                  onPressed: loginDoctor,
+                                  icon: const Icon(Icons.login_rounded),
+                                  label: const Text(
+                                    'Login as Doctor',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                                   style: ElevatedButton.styleFrom(
                                     elevation: 0,
                                     backgroundColor: const Color(0xFF0F766E),
@@ -281,13 +300,6 @@ class _DoctorLoginPageState extends State<DoctorLoginPage> {
                                     ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Login',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),

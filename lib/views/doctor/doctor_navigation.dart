@@ -1,37 +1,31 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'views/account_page.dart';
-import 'views/appointments/appointments_page.dart';
-import 'views/profileoptions/profile_page.dart';
+import 'doctor_page.dart';
+import 'doctor_patients_page.dart';
 
-class NavigationPage extends StatefulWidget {
-  const NavigationPage({super.key});
+class DoctorNavigationPage extends StatefulWidget {
+  const DoctorNavigationPage({super.key});
 
   @override
-  State<NavigationPage> createState() => _NavigationPageState();
+  State<DoctorNavigationPage> createState() => _DoctorNavigationPageState();
 }
 
-class _NavigationPageState extends State<NavigationPage> {
-  int selectedIndex = 1;
+class _DoctorNavigationPageState extends State<DoctorNavigationPage> {
+  int selectedIndex = 0;
 
-  final List<Widget> pages = const [
-    AccountPage(),
-    AppointmentsPage(),
-    ProfilePage(),
+  final pages = const [
+    DoctorPage(),
+    DoctorPatientsPage(),
   ];
 
-  final List<_NavItem> navItems = const [
-    _NavItem(
-      icon: Icons.family_restroom_rounded,
-      label: 'Account',
-    ),
-    _NavItem(
+  final items = const [
+    _DoctorNavItem(
       icon: Icons.calendar_month_rounded,
-      label: 'Appoin',
+      label: 'Appointments',
     ),
-    _NavItem(
-      icon: Icons.person_rounded,
-      label: 'Profile',
+    _DoctorNavItem(
+      icon: Icons.people_alt_rounded,
+      label: 'Patients',
     ),
   ];
 
@@ -66,8 +60,8 @@ class _NavigationPageState extends State<NavigationPage> {
                   ],
                 ),
                 child: Row(
-                  children: List.generate(navItems.length, (index) {
-                    final item = navItems[index];
+                  children: List.generate(items.length, (index) {
+                    final item = items[index];
                     final isSelected = selectedIndex == index;
 
                     return Expanded(
@@ -148,11 +142,11 @@ class _NavigationPageState extends State<NavigationPage> {
   }
 }
 
-class _NavItem {
+class _DoctorNavItem {
   final IconData icon;
   final String label;
 
-  const _NavItem({
+  const _DoctorNavItem({
     required this.icon,
     required this.label,
   });

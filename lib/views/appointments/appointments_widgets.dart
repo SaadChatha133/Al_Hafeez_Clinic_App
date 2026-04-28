@@ -79,6 +79,15 @@ class MyAppointmentCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
+            booking.memberName.isEmpty ? 'Family Member' : booking.memberName,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0F5F5A),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
             formatDate(booking.startTime),
             style: const TextStyle(
               fontSize: 16,
@@ -152,6 +161,15 @@ class DoctorAppointmentCard extends StatelessWidget {
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Color(0xFF0F5F5A),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            booking.memberName.isEmpty ? 'Family Member' : booking.memberName,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF275E59),
             ),
           ),
           const SizedBox(height: 8),

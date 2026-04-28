@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../family/family_member_model.dart';
+import '../family/family_service.dart';
 import 'appointment_models.dart';
 import 'appointments_service.dart';
 import 'appointments_widgets.dart';
@@ -15,11 +17,13 @@ class AppointmentsPage extends StatefulWidget {
 
 class _AppointmentsPageState extends State<AppointmentsPage> {
   final AppointmentsService appointmentsService = AppointmentsService();
+  final FamilyService familyService = FamilyService();
 
   String? pageMessage;
   bool isErrorMessage = false;
   Timer? refreshTimer;
   DateTime selectedDate = DateTime.now();
+  FamilyMember? selectedMember;
 
   @override
   void initState() {
@@ -121,7 +125,69 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
     return slots;
   }
 
+  Future<void> showMemberSelectionPopup(List<FamilyMember> members) async {
+    if (members.isEmpty) {
+      showPageMessage(
+        'Please add a family member first from the account page.',
+        isError: true,
+      );
+      return;
+    }
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select Family Member'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: members.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final member = members[index];
+                final age = familyService.calculateAge(member.dateOfBirth);
+
+                return ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      selectedMember = member;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: const Color(0xFF0F766E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text(
+                    age == null
+                        ? '${member.name} - NA'
+                        : '${member.name} - $age years',
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> showAvailableTimesPopup(Set<String> bookedSlotKeys) async {
+    if (selectedMember == null) {
+      showPageMessage(
+        'Please select a family member first.',
+        isError: true,
+      );
+      return;
+    }
+
     final allClinicTimes = getAvailableClinicTimesForDate(selectedDate);
 
     final availableTimes = allClinicTimes.where((time) {
@@ -177,14 +243,23 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
   }
 
   Future<void> handleBook(DateTime startTime, DateTime endTime) async {
+    if (selectedMember == null) {
+      showPageMessage(
+        'Please select a family member first.',
+        isError: true,
+      );
+      return;
+    }
+
     try {
       await appointmentsService.bookAppointment(
         startTime: startTime,
         endTime: endTime,
+        member: selectedMember!,
       );
 
       showPageMessage(
-        'Appointment booked successfully.',
+        'Appointment booked successfully for ${selectedMember!.name}.',
         isError: false,
       );
     } on FirebaseException catch (e) {
@@ -291,84 +366,120 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
   }
 
   Widget buildBookAppointmentSection() {
-    return StreamBuilder<Set<String>>(
-      stream: appointmentsService.bookedSlotKeysForDateStream(selectedDate),
-      builder: (context, snapshot) {
-        final bookedSlotKeys = snapshot.data ?? <String>{};
+    return StreamBuilder<List<FamilyMember>>(
+      stream: familyService.myFamilyMembersStream(),
+      builder: (context, familySnapshot) {
+        final members = familySnapshot.data ?? [];
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.22),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.40),
+        return StreamBuilder<Set<String>>(
+          stream: appointmentsService.bookedSlotKeysForDateStream(selectedDate),
+          builder: (context, snapshot) {
+            final bookedSlotKeys = snapshot.data ?? <String>{};
+
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.22),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.40),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Book Appointment',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F5F5A),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: familySnapshot.connectionState ==
+                                  ConnectionState.waiting
+                              ? null
+                              : () => showMemberSelectionPopup(members),
+                          icon: const Icon(Icons.family_restroom_rounded),
+                          label: Text(
+                            selectedMember == null
+                                ? 'Select Family Member'
+                                : selectedMember!.name,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0F766E),
+                            side: const BorderSide(
+                              color: Color(0xFF0F766E),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            backgroundColor: Colors.white.withOpacity(0.18),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: pickDate,
+                          icon: const Icon(Icons.calendar_today_rounded),
+                          label: Text(formatDate(selectedDate)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0F766E),
+                            side: const BorderSide(
+                              color: Color(0xFF0F766E),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            backgroundColor: Colors.white.withOpacity(0.18),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed:
+                              snapshot.connectionState == ConnectionState.waiting
+                                  ? null
+                                  : () =>
+                                      showAvailableTimesPopup(bookedSlotKeys),
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            backgroundColor: const Color(0xFF0F766E),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text(
+                            'Choose Time',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Book Appointment',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F5F5A),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: pickDate,
-                      icon: const Icon(Icons.calendar_today_rounded),
-                      label: Text(formatDate(selectedDate)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF0F766E),
-                        side: const BorderSide(
-                          color: Color(0xFF0F766E),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        backgroundColor: Colors.white.withOpacity(0.18),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: snapshot.connectionState == ConnectionState.waiting
-                          ? null
-                          : () => showAvailableTimesPopup(bookedSlotKeys),
-                      style: ElevatedButton.styleFrom(
-                        elevation: 0,
-                        backgroundColor: const Color(0xFF0F766E),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        'Choose Time',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

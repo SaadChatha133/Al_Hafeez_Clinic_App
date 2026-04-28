@@ -14,13 +14,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final TextEditingController currentPasswordController =
       TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmNewPasswordController =
-      TextEditingController();
 
   bool isLoading = false;
-  bool obscureCurrentPassword = true;
-  bool obscureNewPassword = true;
-  bool obscureConfirmPassword = true;
+  bool obscureCurrent = true;
+  bool obscureNew = true;
   String? errorMessage;
 
   void showError(String message) {
@@ -30,27 +27,16 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   }
 
   Future<void> resetPassword() async {
-    final String currentPassword = currentPasswordController.text.trim();
-    final String newPassword = newPasswordController.text.trim();
-    final String confirmNewPassword =
-        confirmNewPasswordController.text.trim();
-    final String email = authService.value.currentUser?.email ?? '';
+    final currentPassword = currentPasswordController.text.trim();
+    final newPassword = newPasswordController.text.trim();
+    final email = authService.value.currentUser?.email ?? '';
 
     setState(() {
       errorMessage = null;
     });
 
-    if (currentPassword.isEmpty ||
-        newPassword.isEmpty ||
-        confirmNewPassword.isEmpty) {
-      showError('Please fill all fields before resetting your password.');
-      return;
-    }
-
-    if (newPassword != confirmNewPassword) {
-      showError(
-        'New password and confirm password do not match.',
-      );
+    if (currentPassword.isEmpty || newPassword.isEmpty) {
+      showError('Please fill all fields.');
       return;
     }
 
@@ -68,24 +54,15 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
     try {
       await authService.value.resetPasswordFromCurrentPassword(
-        CurrentPassword: currentPassword,
+        currentPassword: currentPassword,
         newPassword: newPassword,
         email: email,
       );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password changed successfully'),
-          backgroundColor: Color(0xFF0F766E),
-        ),
-      );
-
       Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-
       String message = 'Could not reset password. Please try again.';
 
       if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
@@ -98,7 +75,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
       showError(message);
     } catch (e) {
-      if (!mounted) return;
       showError('Could not reset password. Please try again.');
     } finally {
       if (mounted) {
@@ -122,18 +98,14 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.error_outline,
-            color: Color(0xFFD64545),
-          ),
+          const Icon(Icons.error_outline, color: Color(0xFFD64545)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               errorMessage!,
               style: const TextStyle(
                 color: Color(0xFF9F1D1D),
-                fontWeight: FontWeight.w500,
-                height: 1.4,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -144,9 +116,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
   InputDecoration inputDecoration({
     required String label,
-    required bool isPassword,
     required bool obscureText,
-    VoidCallback? onToggle,
+    required VoidCallback onToggle,
   }) {
     return InputDecoration(
       labelText: label,
@@ -161,15 +132,13 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Color(0xFF0F766E), width: 1.4),
       ),
-      suffixIcon: isPassword
-          ? IconButton(
-              onPressed: onToggle,
-              icon: Icon(
-                obscureText ? Icons.visibility_off : Icons.visibility,
-                color: const Color(0xFF3B6E69),
-              ),
-            )
-          : null,
+      suffixIcon: IconButton(
+        onPressed: onToggle,
+        icon: Icon(
+          obscureText ? Icons.visibility_off : Icons.visibility,
+          color: const Color(0xFF3B6E69),
+        ),
+      ),
     );
   }
 
@@ -177,7 +146,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   void dispose() {
     currentPasswordController.dispose();
     newPasswordController.dispose();
-    confirmNewPasswordController.dispose();
     super.dispose();
   }
 
@@ -200,33 +168,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               ),
             ),
           ),
-          Positioned(
-            top: -60,
-            right: -40,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -80,
-            left: -50,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                color: const Color(0xFF4DB6AC).withOpacity(0.18),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              padding: const EdgeInsets.all(24),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: BackdropFilter(
@@ -240,16 +184,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       border: Border.all(
                         color: Colors.white.withOpacity(0.45),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 18,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
                     ),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
                           Icons.lock_reset_rounded,
@@ -269,16 +205,14 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         buildErrorBox(),
                         TextField(
                           controller: currentPasswordController,
-                          obscureText: obscureCurrentPassword,
+                          obscureText: obscureCurrent,
                           style: const TextStyle(color: Color(0xFF184E4A)),
                           decoration: inputDecoration(
                             label: 'Current Password',
-                            isPassword: true,
-                            obscureText: obscureCurrentPassword,
+                            obscureText: obscureCurrent,
                             onToggle: () {
                               setState(() {
-                                obscureCurrentPassword =
-                                    !obscureCurrentPassword;
+                                obscureCurrent = !obscureCurrent;
                               });
                             },
                           ),
@@ -286,32 +220,14 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         const SizedBox(height: 15),
                         TextField(
                           controller: newPasswordController,
-                          obscureText: obscureNewPassword,
+                          obscureText: obscureNew,
                           style: const TextStyle(color: Color(0xFF184E4A)),
                           decoration: inputDecoration(
                             label: 'New Password',
-                            isPassword: true,
-                            obscureText: obscureNewPassword,
+                            obscureText: obscureNew,
                             onToggle: () {
                               setState(() {
-                                obscureNewPassword = !obscureNewPassword;
-                              });
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        TextField(
-                          controller: confirmNewPasswordController,
-                          obscureText: obscureConfirmPassword,
-                          style: const TextStyle(color: Color(0xFF184E4A)),
-                          decoration: inputDecoration(
-                            label: 'Confirm New Password',
-                            isPassword: true,
-                            obscureText: obscureConfirmPassword,
-                            onToggle: () {
-                              setState(() {
-                                obscureConfirmPassword =
-                                    !obscureConfirmPassword;
+                                obscureNew = !obscureNew;
                               });
                             },
                           ),
@@ -337,10 +253,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                                     ),
                                   ),
                                   child: const Text(
-                                    'Reset Password',
+                                    'Update Password',
                                     style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ),

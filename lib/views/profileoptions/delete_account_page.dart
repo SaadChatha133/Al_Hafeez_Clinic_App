@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import '../../auth_service.dart';
+import '../home_page.dart';
 
 class DeleteAccountPage extends StatefulWidget {
   const DeleteAccountPage({super.key});
@@ -18,6 +20,9 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
   bool obscurePassword = true;
   String? errorMessage;
 
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final FirebaseStorage storage = FirebaseStorage.instance;
+
   void showError(String message) {
     setState(() {
       errorMessage = message;
@@ -25,8 +30,6 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
   }
 
   Future<void> deleteUserAppointments(String userId) async {
-    final firestore = FirebaseFirestore.instance;
-
     while (true) {
       final snapshot = await firestore
           .collection('appointments')
@@ -34,9 +37,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
           .limit(400)
           .get();
 
-      if (snapshot.docs.isEmpty) {
-        break;
-      }
+      if (snapshot.docs.isEmpty) break;
 
       final batch = firestore.batch();
 
@@ -46,15 +47,11 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
 
       await batch.commit();
 
-      if (snapshot.docs.length < 400) {
-        break;
-      }
+      if (snapshot.docs.length < 400) break;
     }
   }
 
-  Future<void> deleteUserFamilyMembers(String userId) async {
-    final firestore = FirebaseFirestore.instance;
-
+  Future<void> deleteUserFamilyMembersAndReports(String userId) async {
     while (true) {
       final snapshot = await firestore
           .collection('family_members')
@@ -62,22 +59,52 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
           .limit(400)
           .get();
 
-      if (snapshot.docs.isEmpty) {
-        break;
+      if (snapshot.docs.isEmpty) break;
+
+      for (final memberDoc in snapshot.docs) {
+        final memberId = memberDoc.id;
+
+        while (true) {
+          final reportsSnapshot = await firestore
+              .collection('family_members')
+              .doc(memberId)
+              .collection('reports')
+              .limit(400)
+              .get();
+
+          if (reportsSnapshot.docs.isEmpty) break;
+
+          final batch = firestore.batch();
+
+          for (final reportDoc in reportsSnapshot.docs) {
+            batch.delete(reportDoc.reference);
+          }
+
+          await batch.commit();
+
+          if (reportsSnapshot.docs.length < 400) break;
+        }
+
+        try {
+          final folderRef = storage.ref().child('reports/$userId/$memberId');
+          final listResult = await folderRef.listAll();
+
+          for (final item in listResult.items) {
+            await item.delete();
+          }
+        } catch (_) {}
+
+        await memberDoc.reference.delete();
       }
 
-      final batch = firestore.batch();
-
-      for (final doc in snapshot.docs) {
-        batch.delete(doc.reference);
-      }
-
-      await batch.commit();
-
-      if (snapshot.docs.length < 400) {
-        break;
-      }
+      if (snapshot.docs.length < 400) break;
     }
+  }
+
+  Future<void> deleteUserProfileDocument(String userId) async {
+    try {
+      await firestore.collection('users').doc(userId).delete();
+    } catch (_) {}
   }
 
   Future<void> deleteAccount() async {
@@ -104,7 +131,8 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
 
     try {
       await deleteUserAppointments(userId);
-      await deleteUserFamilyMembers(userId);
+      await deleteUserFamilyMembersAndReports(userId);
+      await deleteUserProfileDocument(userId);
 
       await authService.value.deleteAccount(
         email: email,
@@ -113,7 +141,12 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
 
       if (!mounted) return;
 
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const HomePage(),
+        ),
+        (route) => false,
+      );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
 
@@ -173,7 +206,6 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
 
   InputDecoration inputDecoration({
     required String label,
-    required bool isPassword,
     required bool obscureText,
     VoidCallback? onToggle,
   }) {
@@ -188,17 +220,15 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF0F766E), width: 1.4),
+        borderSide: const BorderSide(color: Color(0xFFC65D5D), width: 1.4),
       ),
-      suffixIcon: isPassword
-          ? IconButton(
-              onPressed: onToggle,
-              icon: Icon(
-                obscureText ? Icons.visibility_off : Icons.visibility,
-                color: const Color(0xFF3B6E69),
-              ),
-            )
-          : null,
+      suffixIcon: IconButton(
+        onPressed: onToggle,
+        icon: Icon(
+          obscureText ? Icons.visibility_off : Icons.visibility,
+          color: const Color(0xFF3B6E69),
+        ),
+      ),
     );
   }
 
@@ -226,30 +256,6 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          Positioned(
-            top: -60,
-            right: -40,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -80,
-            left: -50,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                color: const Color(0xFF4DB6AC).withOpacity(0.18),
-                shape: BoxShape.circle,
               ),
             ),
           ),
@@ -306,7 +312,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                             ),
                           ),
                           child: Text(
-                            'You are about to permanently delete the account for:\n$email\n\nAny appointments and family member data linked to this account will also be removed.',
+                            'You are about to permanently delete the account for:\n$email\n\nAll appointments, family members, and uploaded reports linked to this account will also be removed.',
                             style: const TextStyle(
                               color: Color(0xFF9F1D1D),
                               fontWeight: FontWeight.w600,
@@ -322,7 +328,6 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                           style: const TextStyle(color: Color(0xFF184E4A)),
                           decoration: inputDecoration(
                             label: 'Enter Password',
-                            isPassword: true,
                             obscureText: obscurePassword,
                             onToggle: () {
                               setState(() {

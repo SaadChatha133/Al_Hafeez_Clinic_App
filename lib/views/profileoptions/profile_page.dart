@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../auth_service.dart';
+import '../home_page.dart';
 import 'reset_password_page.dart';
 import 'delete_account_page.dart';
 
@@ -31,7 +32,15 @@ class ProfilePage extends StatelessWidget {
 
   Future<void> signOut(BuildContext context) async {
     await authService.value.signOut();
-    Navigator.of(context).popUntil((route) => route.isFirst);
+
+    if (!context.mounted) return;
+
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const HomePage(),
+      ),
+      (route) => false,
+    );
   }
 
   Widget themedButton({
@@ -68,7 +77,10 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final email = authService.value.currentUser?.email ?? "No Email";
+    final username =
+        authService.value.currentUser?.displayName?.trim().isNotEmpty == true
+            ? authService.value.currentUser!.displayName!
+            : 'User';
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8FFFB),
@@ -165,10 +177,10 @@ class ProfilePage extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            email,
+                            username,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF0F5F5A),
                             ),
@@ -178,16 +190,20 @@ class ProfilePage extends StatelessWidget {
                         themedButton(
                           text: "Reset Password",
                           icon: Icons.lock_reset_rounded,
-                          onPressed: () =>
-                              navigate(context, const ResetPasswordPage()),
+                          onPressed: () => navigate(
+                            context,
+                            const ResetPasswordPage(),
+                          ),
                         ),
                         const SizedBox(height: 12),
                         themedButton(
                           text: "Delete Account",
                           icon: Icons.delete_forever_rounded,
                           backgroundColor: const Color(0xFFC65D5D),
-                          onPressed: () =>
-                              navigate(context, const DeleteAccountPage()),
+                          onPressed: () => navigate(
+                            context,
+                            const DeleteAccountPage(),
+                          ),
                         ),
                         const SizedBox(height: 12),
                         themedButton(

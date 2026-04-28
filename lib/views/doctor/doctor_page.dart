@@ -4,6 +4,8 @@ import '../../auth_service.dart';
 import '../appointments/appointment_models.dart';
 import '../appointments/appointments_service.dart';
 import '../appointments/appointments_widgets.dart';
+import '../home_page.dart';
+import 'doctor_appointment_detail_page.dart';
 
 class DoctorPage extends StatefulWidget {
   const DoctorPage({super.key});
@@ -61,8 +63,24 @@ class _DoctorPageState extends State<DoctorPage> {
 
   Future<void> signOutDoctor() async {
     await authService.value.signOut();
+
     if (!mounted) return;
-    Navigator.of(context).popUntil((route) => route.isFirst);
+
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const HomePage(),
+      ),
+      (route) => false,
+    );
+  }
+
+  Future<void> openAppointmentDetail(AppointmentBooking booking) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DoctorAppointmentDetailPage(booking: booking),
+      ),
+    );
   }
 
   Widget buildAppointmentsList() {
@@ -104,8 +122,11 @@ class _DoctorPageState extends State<DoctorPage> {
         return Column(
           children: appointments
               .map(
-                (booking) => DoctorAppointmentCard(
-                  booking: booking,
+                (booking) => GestureDetector(
+                  onTap: () => openAppointmentDetail(booking),
+                  child: DoctorAppointmentCard(
+                    booking: booking,
+                  ),
                 ),
               )
               .toList(),
@@ -159,7 +180,7 @@ class _DoctorPageState extends State<DoctorPage> {
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -193,7 +214,7 @@ class _DoctorPageState extends State<DoctorPage> {
                             ),
                             const SizedBox(height: 12),
                             const Text(
-                              'Doctor Admin',
+                              'Doctor Appointments',
                               style: TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.bold,
@@ -202,7 +223,7 @@ class _DoctorPageState extends State<DoctorPage> {
                             ),
                             const SizedBox(height: 10),
                             const Text(
-                              'This page shows all current booked appointments and automatically removes old past appointments when opened.',
+                              'Tap an appointment to view patient age and medical reports.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 15,
@@ -216,7 +237,12 @@ class _DoctorPageState extends State<DoctorPage> {
                               child: ElevatedButton.icon(
                                 onPressed: signOutDoctor,
                                 icon: const Icon(Icons.logout_rounded),
-                                label: const Text('Sign Out'),
+                                label: const Text(
+                                  'Sign Out',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                                 style: ElevatedButton.styleFrom(
                                   elevation: 0,
                                   backgroundColor: const Color(0xFF2C8C84),

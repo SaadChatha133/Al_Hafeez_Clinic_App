@@ -1,34 +1,26 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'register_page.dart';
 import 'login_page.dart';
+import 'register_page.dart';
 import 'doctor/doctor_login_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  void navigateToRegister(BuildContext context) {
+  void navigate(BuildContext context, Widget page) {
     Navigator.push(
       context,
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const RegisterPage(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final offsetAnimation = Tween<Offset>(
-            begin: const Offset(0, 0.2),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            ),
-          );
-
+        transitionDuration: const Duration(milliseconds: 450),
+        pageBuilder: (_, animation, __) => page,
+        transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(
             opacity: animation,
             child: SlideTransition(
-              position: offsetAnimation,
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.15),
+                end: Offset.zero,
+              ).animate(animation),
               child: child,
             ),
           );
@@ -37,62 +29,33 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  void navigateToLogin(BuildContext context) {
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const LoginPage(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final offsetAnimation = Tween<Offset>(
-            begin: const Offset(0, 0.2),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            ),
-          );
-
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: offsetAnimation,
-              child: child,
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void navigateToDoctor(BuildContext context) {
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const DoctorLoginPage(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final offsetAnimation = Tween<Offset>(
-            begin: const Offset(0, 0.2),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            ),
-          );
-
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: offsetAnimation,
-              child: child,
-            ),
-          );
-        },
+  Widget glassButton({
+    required String text,
+    required IconData icon,
+    required VoidCallback onPressed,
+    Color backgroundColor = const Color(0xFF0F766E),
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon),
+        label: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: backgroundColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
       ),
     );
   }
@@ -100,6 +63,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE8FFFB),
       body: Stack(
         children: [
           Container(
@@ -116,162 +80,138 @@ class HomePage extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: -60,
-            right: -40,
+            top: -70,
+            right: -45,
             child: Container(
-              width: 180,
-              height: 180,
+              width: 190,
+              height: 190,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
+                color: Colors.white.withOpacity(0.28),
                 shape: BoxShape.circle,
               ),
             ),
           ),
           Positioned(
-            bottom: -80,
-            left: -50,
+            bottom: -90,
+            left: -55,
             child: Container(
-              width: 220,
-              height: 220,
+              width: 230,
+              height: 230,
               decoration: BoxDecoration(
-                color: const Color(0xFF4DB6AC).withOpacity(0.18),
+                color: const Color(0xFF4DB6AC).withOpacity(0.20),
                 shape: BoxShape.circle,
               ),
             ),
           ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                  child: Container(
-                    width: double.infinity,
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.28),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.45),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.30),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.45),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 22,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 18,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.35),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.local_hospital_rounded,
-                            size: 52,
-                            color: Color(0xFF0F766E),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Al-Hafeez Clinic',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F5F5A),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Caring for your health with compassion trust and excellence every day.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 15,
-                            height: 1.5,
-                            color: Color(0xFF275E59),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () => navigateToLogin(context),
-                            style: ElevatedButton.styleFrom(
-                              elevation: 0,
-                              backgroundColor: const Color(0xFF0F766E),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.38),
+                              shape: BoxShape.circle,
                             ),
-                            child: const Text(
-                              'Login',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: const Icon(
+                              Icons.local_hospital_rounded,
+                              size: 58,
+                              color: Color(0xFF0F766E),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () => navigateToRegister(context),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: Color(0xFF0F766E),
-                                width: 1.2,
-                              ),
-                              foregroundColor: const Color(0xFF0F766E),
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              backgroundColor: Colors.white.withOpacity(0.18),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Al-Hafeez Clinic',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F5F5A),
                             ),
-                            child: const Text(
-                              'Register',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Your health matters. Book appointments and manage your family care with ease.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15.5,
+                              height: 1.5,
+                              color: Color(0xFF275E59),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          glassButton(
+                            text: 'Login',
+                            icon: Icons.login_rounded,
+                            onPressed: () =>
+                                navigate(context, const LoginPage()),
+                          ),
+                          const SizedBox(height: 14),
+                          glassButton(
+                            text: 'Register',
+                            icon: Icons.app_registration_rounded,
+                            backgroundColor: const Color(0xFF2C8C84),
+                            onPressed: () =>
+                                navigate(context, const RegisterPage()),
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () =>
+                                  navigate(context, const DoctorLoginPage()),
+                              icon: const Icon(Icons.medical_services_rounded),
+                              label: const Text(
+                                'Doctor',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF0F766E),
+                                side: const BorderSide(
+                                  color: Color(0xFF0F766E),
+                                  width: 1.3,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 15,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                backgroundColor:
+                                    Colors.white.withOpacity(0.18),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () => navigateToDoctor(context),
-                            style: ElevatedButton.styleFrom(
-                              elevation: 0,
-                              backgroundColor: const Color(0xFF2C8C84),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: const Text(
-                              'Doctor',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

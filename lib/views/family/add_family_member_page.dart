@@ -93,12 +93,8 @@ class _AddFamilyMemberPageState extends State<AddFamilyMemberPage> {
         border: Border.all(color: const Color(0xFFD64545)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.error_outline,
-            color: Color(0xFFD64545),
-          ),
+          const Icon(Icons.error_outline, color: Color(0xFFD64545)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -106,7 +102,6 @@ class _AddFamilyMemberPageState extends State<AddFamilyMemberPage> {
               style: const TextStyle(
                 color: Color(0xFF9F1D1D),
                 fontWeight: FontWeight.w500,
-                height: 1.4,
               ),
             ),
           ),
@@ -181,26 +176,19 @@ class _AddFamilyMemberPageState extends State<AddFamilyMemberPage> {
                       ],
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Center(
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.person_add_alt_1_rounded,
-                                size: 50,
-                                color: Color(0xFF0F766E),
-                              ),
-                              SizedBox(height: 12),
-                              Text(
-                                'Add Family Member',
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0F5F5A),
-                                ),
-                              ),
-                            ],
+                        const Icon(
+                          Icons.person_add_alt_1_rounded,
+                          size: 50,
+                          color: Color(0xFF0F766E),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Add Family Member',
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F5F5A),
                           ),
                         ),
                         const SizedBox(height: 22),
@@ -236,30 +224,25 @@ class _AddFamilyMemberPageState extends State<AddFamilyMemberPage> {
                         ),
                         if (selectedDateOfBirth != null) ...[
                           const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  selectedDateOfBirth = null;
-                                });
-                              },
-                              child: const Text(
-                                'Clear Date of Birth',
-                                style: TextStyle(
-                                  color: Color(0xFFC65D5D),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                selectedDateOfBirth = null;
+                              });
+                            },
+                            child: const Text(
+                              'Clear Date of Birth',
+                              style: TextStyle(
+                                color: Color(0xFFC65D5D),
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         ],
                         const SizedBox(height: 24),
                         isLoading
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFF0F766E),
-                                ),
+                            ? const CircularProgressIndicator(
+                                color: Color(0xFF0F766E),
                               )
                             : SizedBox(
                                 width: double.infinity,

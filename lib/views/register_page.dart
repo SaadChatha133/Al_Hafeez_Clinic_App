@@ -1,6 +1,8 @@
 import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../auth_service.dart';
+import '../navigation.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -10,6 +12,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final TextEditingController usernameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
@@ -20,24 +23,30 @@ class _RegisterPageState extends State<RegisterPage> {
   bool obscureConfirmPassword = true;
   String? errorMessage;
 
-  bool isValidEmail(String email) {
-    return email.contains('@') && email.contains('.com');
-  }
-
   void showError(String message) {
     setState(() {
       errorMessage = message;
     });
   }
 
-  Future<void> register() async {
-    final String email = emailController.text.trim();
-    final String password = passwordController.text.trim();
-    final String confirmPassword = confirmPasswordController.text.trim();
+  bool isValidEmail(String email) {
+    return email.contains('@') && email.contains('.com');
+  }
+
+  Future<void> registerUser() async {
+    final username = usernameController.text.trim();
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
 
     setState(() {
       errorMessage = null;
     });
+
+    if (username.isEmpty) {
+      showError('Please enter a username.');
+      return;
+    }
 
     if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       showError('Please fill all fields before registering.');
@@ -45,12 +54,12 @@ class _RegisterPageState extends State<RegisterPage> {
     }
 
     if (!isValidEmail(email)) {
-      showError('Invalid email format. Please enter correct email address.');
+      showError('Invalid email format. Please enter an email with @ and .com');
       return;
     }
 
     if (password != confirmPassword) {
-      showError('Passwords do not match. Please enter the same password in both fields.');
+      showError('Passwords do not match. Please enter the same password.');
       return;
     }
 
@@ -59,7 +68,9 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    setState(() => isLoading = true);
+    setState(() {
+      isLoading = true;
+    });
 
     try {
       await authService.value.createAccount(
@@ -67,43 +78,75 @@ class _RegisterPageState extends State<RegisterPage> {
         password: password,
       );
 
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created successfully'),
-          backgroundColor: Color(0xFF0F766E),
-        ),
+      await authService.value.updateUsername(
+        username: username,
       );
 
-      Navigator.of(context).pop();
-    } catch (e) {
       if (!mounted) return;
 
-      String message = 'Registration failed. Please try again.';
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const NavigationPage(),
+        ),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = 'Could not register. Please try again.';
 
-      if (e.toString().contains('email-already-in-use')) {
-        message = 'This email is already registered. Please use another email.';
-      } else if (e.toString().contains('invalid-email')) {
-        message = 'The email format is invalid.';
-      } else if (e.toString().contains('weak-password')) {
-        message = 'This password is too weak. Please choose a stronger password.';
+      if (e.code == 'email-already-in-use') {
+        message = 'This email is already registered.';
+      } else if (e.code == 'invalid-email') {
+        message = 'The email address is invalid.';
+      } else if (e.code == 'weak-password') {
+        message = 'Password is too weak.';
       }
 
       showError(message);
+    } catch (e) {
+      showError('Could not register. Please try again.');
     } finally {
       if (mounted) {
-        setState(() => isLoading = false);
+        setState(() {
+          isLoading = false;
+        });
       }
     }
   }
 
-  @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    confirmPasswordController.dispose();
-    super.dispose();
+  Widget buildErrorBox() {
+    if (errorMessage == null) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFE5E5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD64545)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            color: Color(0xFFD64545),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              errorMessage!,
+              style: const TextStyle(
+                color: Color(0xFF9F1D1D),
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   InputDecoration inputDecoration({
@@ -137,44 +180,19 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget buildErrorBox() {
-    if (errorMessage == null) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFE5E5),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD64545)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.error_outline,
-            color: Color(0xFFD64545),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              errorMessage!,
-              style: const TextStyle(
-                color: Color(0xFF9F1D1D),
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  @override
+  void dispose() {
+    usernameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE8FFFB),
       body: Stack(
         children: [
           Container(
@@ -190,7 +208,31 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             ),
           ),
-          Center(
+          Positioned(
+            top: -60,
+            right: -40,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.25),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -80,
+            left: -50,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4DB6AC).withOpacity(0.18),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: ClipRRect(
@@ -199,7 +241,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                   child: Container(
                     width: double.infinity,
-                    constraints: const BoxConstraints(maxWidth: 430),
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.28),
@@ -216,16 +257,15 @@ class _RegisterPageState extends State<RegisterPage> {
                       ],
                     ),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.person_add_alt_1_rounded,
-                          size: 46,
+                          Icons.app_registration_rounded,
+                          size: 50,
                           color: Color(0xFF0F766E),
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'Create Account',
+                          'Register',
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
@@ -234,6 +274,16 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         const SizedBox(height: 22),
                         buildErrorBox(),
+                        TextField(
+                          controller: usernameController,
+                          style: const TextStyle(color: Color(0xFF184E4A)),
+                          decoration: inputDecoration(
+                            label: 'Username',
+                            isPassword: false,
+                            obscureText: false,
+                          ),
+                        ),
+                        const SizedBox(height: 15),
                         TextField(
                           controller: emailController,
                           keyboardType: TextInputType.emailAddress,
@@ -285,7 +335,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             : SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: register,
+                                  onPressed: registerUser,
                                   style: ElevatedButton.styleFrom(
                                     elevation: 0,
                                     backgroundColor: const Color(0xFF0F766E),
@@ -298,7 +348,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     ),
                                   ),
                                   child: const Text(
-                                    'Register',
+                                    'Create Account',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,

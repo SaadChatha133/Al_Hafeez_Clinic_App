@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'family/family_member_model.dart';
-import 'family/family_service.dart';
 import 'family/add_family_member_page.dart';
 import 'family/family_member_detail_page.dart';
+import 'family/family_member_model.dart';
+import 'family/family_service.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -14,6 +14,7 @@ class AccountPage extends StatefulWidget {
 
 class _AccountPageState extends State<AccountPage> {
   final FamilyService familyService = FamilyService();
+
   String? pageMessage;
   bool isError = false;
 
@@ -49,7 +50,7 @@ class _AccountPageState extends State<AccountPage> {
         return AlertDialog(
           title: const Text('Delete Family Member'),
           content: Text(
-            'Are you sure you want to delete ${member.name}?',
+            'Are you sure you want to delete ${member.name}? This will also remove their appointments and reports.',
           ),
           actions: [
             TextButton(
@@ -73,11 +74,15 @@ class _AccountPageState extends State<AccountPage> {
     try {
       await familyService.deleteFamilyMember(memberId: member.id);
 
+      if (!mounted) return;
+
       showPageMessage(
         '${member.name} was deleted successfully.',
         error: false,
       );
     } catch (e) {
+      if (!mounted) return;
+
       showPageMessage(
         'Could not delete family member.',
         error: true,
@@ -93,35 +98,25 @@ class _AccountPageState extends State<AccountPage> {
       margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isError
-            ? const Color(0xFFFFE5E5)
-            : const Color(0xFFE5FFF7),
+        color: isError ? const Color(0xFFFFE5E5) : const Color(0xFFE5FFF7),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isError
-              ? const Color(0xFFD64545)
-              : const Color(0xFF2C8C84),
+          color: isError ? const Color(0xFFD64545) : const Color(0xFF2C8C84),
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             isError ? Icons.error_outline : Icons.check_circle_outline,
-            color: isError
-                ? const Color(0xFFD64545)
-                : const Color(0xFF2C8C84),
+            color: isError ? const Color(0xFFD64545) : const Color(0xFF2C8C84),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               pageMessage!,
               style: TextStyle(
-                color: isError
-                    ? const Color(0xFF9F1D1D)
-                    : const Color(0xFF0F5F5A),
+                color: isError ? const Color(0xFF9F1D1D) : const Color(0xFF0F5F5A),
                 fontWeight: FontWeight.w600,
-                height: 1.4,
               ),
             ),
           ),
@@ -132,7 +127,7 @@ class _AccountPageState extends State<AccountPage> {
 
   Widget buildFamilyMemberCard(FamilyMember member) {
     final age = familyService.calculateAge(member.dateOfBirth);
-    final subtitle = age == null ? 'NA' : '$age years';
+    final ageText = age == null ? 'NA' : '$age years';
 
     return GestureDetector(
       onTap: () => openMemberDetail(member),
@@ -142,7 +137,7 @@ class _AccountPageState extends State<AccountPage> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.36),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: Colors.white.withOpacity(0.45),
           ),
@@ -152,7 +147,7 @@ class _AccountPageState extends State<AccountPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.40),
+                color: Colors.white.withOpacity(0.42),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -175,10 +170,11 @@ class _AccountPageState extends State<AccountPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    subtitle,
+                    ageText,
                     style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF275E59),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -296,7 +292,10 @@ class _AccountPageState extends State<AccountPage> {
                               child: ElevatedButton.icon(
                                 onPressed: openAddMemberPage,
                                 icon: const Icon(Icons.person_add_alt_1_rounded),
-                                label: const Text('Add Member'),
+                                label: const Text(
+                                  'Add Member',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
                                 style: ElevatedButton.styleFrom(
                                   elevation: 0,
                                   backgroundColor: const Color(0xFF0F766E),
@@ -330,8 +329,7 @@ class _AccountPageState extends State<AccountPage> {
                     child: StreamBuilder<List<FamilyMember>>(
                       stream: familyService.myFamilyMembersStream(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(
                             child: CircularProgressIndicator(
                               color: Color(0xFF0F766E),

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../family/family_member_model.dart';
 import 'appointment_models.dart';
 
 class AppointmentsService {
@@ -68,6 +69,7 @@ class AppointmentsService {
   Future<void> bookAppointment({
     required DateTime startTime,
     required DateTime endTime,
+    required FamilyMember member,
   }) async {
     final user = firebaseAuth.currentUser;
 
@@ -95,6 +97,11 @@ class AppointmentsService {
       transaction.set(appointmentRef, {
         'userId': user.uid,
         'userEmail': user.email ?? '',
+        'memberId': member.id,
+        'memberName': member.name,
+        'memberDateOfBirth': member.dateOfBirth != null
+            ? Timestamp.fromDate(member.dateOfBirth!)
+            : null,
         'startTime': Timestamp.fromDate(startTime),
         'endTime': Timestamp.fromDate(endTime),
         'status': 'booked',
